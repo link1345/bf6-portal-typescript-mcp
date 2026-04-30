@@ -31,7 +31,7 @@ node dist/index.js mcp --sdk-path /path/to/bf6-portal-sdk
 BF6_PORTAL_SDK_PATH=/path/to/bf6-portal-sdk npx bf6-portal-typescript-mcp@latest mcp
 ```
 
-The book path defaults to `/home/link/bf-portal-book`. Override it with `--book-path` when needed.
+Book data is downloaded automatically from `link1345/bf-portal-book` when this package is installed.
 
 ## MCP Client Config
 
@@ -55,7 +55,7 @@ Example configuration for clients that launch stdio MCP servers:
 
 ## MCP Tools
 
-- `search_book`: searches `/content/chapters/*.md` from the local `link1345/bf-portal-book` checkout and returns GitHub blob links.
+- `search_book`: searches `/content/chapters/*.md` from the installed `link1345/bf-portal-book` data and returns GitHub blob links.
 - `get_book_chapter`: returns one chapter by slug with headings and source URL.
 - `search_sdk`: searches SDK docs, type declarations, modlib exports, and FbExportData.
 - `get_sdk_symbol`: returns parsed SDK type/modlib symbol details.

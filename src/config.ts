@@ -1,7 +1,8 @@
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { ServerConfig } from "./types.js";
 
-const DEFAULT_BOOK_PATH = "/home/link/bf-portal-book";
+const DEFAULT_BOOK_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "vendor", "bf-portal-book");
 
 export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env): ServerConfig {
   const args = normalizeSubcommand(argv);
@@ -58,11 +59,13 @@ export class HelpRequested extends Error {
 export function helpText(): string {
   return [
     "Usage:",
-    "  bf6-portal-typescript-mcp mcp [--sdk-path /path/to/sdk] [--book-path /path/to/bf-portal-book]",
-    "  bf6-portal-mcp [--sdk-path /path/to/sdk] [--book-path /path/to/bf-portal-book]",
+    "  bf6-portal-typescript-mcp mcp [--sdk-path /path/to/sdk]",
+    "  bf6-portal-mcp [--sdk-path /path/to/sdk]",
     "",
     "Environment:",
-    "  BF6_PORTAL_SDK_PATH  SDK root used when --sdk-path is not provided."
+    "  BF6_PORTAL_SDK_PATH  SDK root used when --sdk-path is not provided.",
+    "",
+    "Book data is downloaded from link1345/bf-portal-book during package installation."
   ].join("\n");
 }
 

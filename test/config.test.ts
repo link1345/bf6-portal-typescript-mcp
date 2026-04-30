@@ -12,6 +12,11 @@ describe("parseArgs", () => {
     expect(config.sdkPath).toBe("/tmp/from-env");
   });
 
+  it("uses the installed book data path by default", () => {
+    const config = parseArgs([], {});
+    expect(config.bookPath).toMatch(/[/\\]vendor[/\\]bf-portal-book$/u);
+  });
+
   it("accepts the npx mcp subcommand form", () => {
     const config = parseArgs(["mcp", "--sdk-path", "/tmp/from-npx"], {});
     expect(config.sdkPath).toBe("/tmp/from-npx");

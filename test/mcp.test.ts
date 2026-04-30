@@ -2,29 +2,20 @@ import { describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { buildBookIndex } from "../src/book.js";
+import { parseArgs } from "../src/config.js";
 import { createMcpServer } from "../src/mcp.js";
 import { buildSdkIndex } from "../src/sdk.js";
 
 describe("mcp server", () => {
   it("creates a server even when SDK path is absent", async () => {
-    const book = await buildBookIndex({
-      bookPath: "/home/link/bf-portal-book",
-      githubOwner: "link1345",
-      githubRepo: "bf-portal-book",
-      githubBranch: "main"
-    });
+    const book = await buildBookIndex(parseArgs([]));
     const sdk = await buildSdkIndex(undefined);
     const server = createMcpServer({ book, sdk });
     expect(server.isConnected()).toBe(false);
   });
 
   it("returns JSON tool results for empty searches and invalid lookups", async () => {
-    const book = await buildBookIndex({
-      bookPath: "/home/link/bf-portal-book",
-      githubOwner: "link1345",
-      githubRepo: "bf-portal-book",
-      githubBranch: "main"
-    });
+    const book = await buildBookIndex(parseArgs([]));
     const sdk = await buildSdkIndex(undefined);
     const server = createMcpServer({ book, sdk });
     const client = new Client({ name: "test-client", version: "1.0.0" });

@@ -114,7 +114,7 @@ function registerTools(server: McpServer, context: AppContext): void {
     "search_book",
     {
       title: "Search unofficial BF Portal book",
-      description: "Searches only content/chapters in the local link1345/bf-portal-book checkout and returns GitHub blob links.",
+      description: "Searches only content/chapters from the installed link1345/bf-portal-book data and returns GitHub blob links.",
       inputSchema: { query: z.string(), limit: z.number().int().positive().max(100).optional() }
     },
     async ({ query, limit }) => textResult({ results: searchBook(context.book, query, limit ?? 20) })
