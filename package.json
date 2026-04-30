@@ -1,0 +1,59 @@
+{
+  "name": "bf6-portal-typescript-mcp",
+  "version": "1.0.0",
+  "description": "Reference and search MCP server for BF6 Portal TypeScript SDK and the unofficial BF Portal book.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "bf6-portal-typescript-mcp": "dist/index.js",
+    "bf6-portal-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "clean": "node scripts/clean-dist.mjs",
+    "prebuild": "npm run clean",
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm test && npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "battlefield",
+    "portal",
+    "typescript",
+    "bf6",
+    "battlefield-portal",
+    "model-context-protocol"
+  ],
+  "author": "link1345",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/link1345/bf6-portal-typescript-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/link1345/bf6-portal-typescript-mcp/issues"
+  },
+  "homepage": "https://github.com/link1345/bf6-portal-typescript-mcp#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
+  }
+}
