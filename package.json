@@ -1,6 +1,6 @@
 {
   "name": "bf6-portal-typescript-mcp",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Reference and search MCP server for BF6 Portal TypeScript SDK and the unofficial BF Portal book.",
   "type": "module",
   "main": "dist/index.js",
