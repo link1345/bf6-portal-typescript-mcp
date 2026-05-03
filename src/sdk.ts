@@ -5,6 +5,14 @@ import { pathExists, readTextIfExists, relativePosix, walkFiles } from "./fs-uti
 import { searchLines } from "./search.js";
 import type { SearchResult } from "./types.js";
 
+const SEARCH_SNIPPET_CHARS = 400;
+const DEFAULT_SYMBOL_DETAIL_CHARS = 4000;
+const MAX_SYMBOL_DETAIL_CHARS = 20000;
+const DEFAULT_DOCUMENT_CHARS = 4000;
+const MAX_DOCUMENT_CHARS = 20000;
+const DEFAULT_DOCUMENT_LINES = 80;
+const MAX_DOCUMENT_LINES = 500;
+
 const SDK_ITEMS = {
   modlib: "code/modlib",
   types: "code/types",
@@ -38,13 +46,27 @@ export async function buildSdkIndex(sdkPath?: string): Promise<SdkIndex> {
   for (const filePath of await walkFiles(docsRoot, isTextLikeFile)) {
     const text = await fs.readFile(filePath, "utf8");
     const rel = relativePosix(docsRoot, filePath);
-    documents.push({ kind: "docs", id: rel, title: titleFromText(text, rel), path: filePath, text, lines: text.split(/\r?\n/) });
+    documents.push({
+      kind: "docs",
+      id: rel,
+      title: titleFromText(text, rel),
+      path: filePath,
+      size: Buffer.byteLength(text),
+      lineCount: text.split(/\r?\n/).length
+    });
   }
 
   for (const filePath of await walkFiles(fbexportRoot, isTextLikeFile)) {
     const text = await fs.readFile(filePath, "utf8");
     const rel = relativePosix(fbexportRoot, filePath);
-    documents.push({ kind: "fbexport", id: rel, title: rel, path: filePath, text, lines: text.split(/\r?\n/) });
+    documents.push({
+      kind: "fbexport",
+      id: rel,
+      title: rel,
+      path: filePath,
+      size: Buffer.byteLength(text),
+      lineCount: text.split(/\r?\n/).length
+    });
   }
 
   return { status, symbols, documents };
@@ -159,7 +181,7 @@ export function parseModlibSymbols(text: string, filePath: string): SdkSymbol[] 
   return symbols;
 }
 
-export function searchSdk(index: SdkIndex, query: string, kinds?: Array<"docs" | "types" | "modlib" | "fbexport">, limit = 30): SearchResult[] {
+export async function searchSdk(index: SdkIndex, query: string, kinds?: Array<"docs" | "types" | "modlib" | "fbexport">, limit = 30): Promise<SearchResult[]> {
   const wanted = new Set(kinds?.length ? kinds : ["docs", "types", "modlib", "fbexport"]);
   const normalized = query.trim().toLowerCase();
   if (!normalized) return [];
@@ -173,25 +195,34 @@ export function searchSdk(index: SdkIndex, query: string, kinds?: Array<"docs" |
       kind: symbol.source,
       id: symbol.name,
       title: `${symbol.name} (${symbol.kind})`,
-      path: symbol.path,
+      path: relativeSdkPath(index, symbol.path),
       line: symbol.line,
-      snippet: symbol.detail
+      snippet: truncateText(symbol.detail, SEARCH_SNIPPET_CHARS).text,
+      truncated: symbol.detail.length > SEARCH_SNIPPET_CHARS,
+      detailAvailable: true
     });
     if (results.length >= limit) return results;
   }
 
   for (const doc of index.documents) {
     if (!wanted.has(doc.kind)) continue;
+    const text = await fs.readFile(doc.path, "utf8");
+    const lines = text.split(/\r?\n/);
     results.push(
       ...searchLines({
         kind: doc.kind,
         id: doc.id,
         title: doc.title,
-        path: doc.path,
-        lines: doc.lines,
+        path: relativeSdkPath(index, doc.path),
+        lines,
         query,
         limit: Math.max(1, limit - results.length)
-      })
+      }).map((result) => ({
+        ...result,
+        snippet: truncateText(result.snippet, SEARCH_SNIPPET_CHARS).text,
+        truncated: result.snippet.length > SEARCH_SNIPPET_CHARS,
+        detailAvailable: true
+      }))
     );
     if (results.length >= limit) return results;
   }
@@ -199,23 +230,83 @@ export function searchSdk(index: SdkIndex, query: string, kinds?: Array<"docs" |
   return results;
 }
 
-export function getSdkSymbol(index: SdkIndex, name: string, source?: "types" | "modlib"): SdkSymbol[] {
+export function getSdkSymbol(
+  index: SdkIndex,
+  name: string,
+  source?: "types" | "modlib",
+  options: { includeDetail?: boolean; maxChars?: number } = {}
+) {
   const needle = name.trim().toLowerCase();
   if (!needle) return [];
-  return index.symbols.filter((symbol) => {
-    if (source && symbol.source !== source) return false;
-    return symbol.name.toLowerCase() === needle;
-  });
+  const maxChars = clampLimit(options.maxChars, DEFAULT_SYMBOL_DETAIL_CHARS, MAX_SYMBOL_DETAIL_CHARS);
+  const includeDetail = options.includeDetail ?? true;
+  return index.symbols
+    .filter((symbol) => {
+      if (source && symbol.source !== source) return false;
+      return symbol.name.toLowerCase() === needle;
+    })
+    .map((symbol) => summarizeSdkSymbol(index, symbol, { includeDetail, maxChars }));
 }
 
-export function listSdkSymbols(index: SdkIndex, options: { kind?: SdkSymbol["kind"]; source?: "types" | "modlib"; prefix?: string; limit?: number }): SdkSymbol[] {
+export function listSdkSymbols(index: SdkIndex, options: { kind?: SdkSymbol["kind"]; source?: "types" | "modlib"; prefix?: string; limit?: number }) {
   const prefix = options.prefix?.toLowerCase();
-  const limit = options.limit ?? 100;
+  const limit = clampLimit(options.limit, 50, 100);
   return index.symbols
     .filter((symbol) => !options.kind || symbol.kind === options.kind)
     .filter((symbol) => !options.source || symbol.source === options.source)
     .filter((symbol) => !prefix || symbol.name.toLowerCase().startsWith(prefix))
-    .slice(0, limit);
+    .slice(0, limit)
+    .map((symbol) => ({
+      name: symbol.name,
+      kind: symbol.kind,
+      source: symbol.source,
+      path: relativeSdkPath(index, symbol.path),
+      line: symbol.line
+    }));
+}
+
+export async function readSdkDocument(
+  index: SdkIndex,
+  kind: "docs" | "fbexport",
+  id: string,
+  options: { startLine?: number; lineCount?: number; maxChars?: number } = {}
+) {
+  const doc = index.documents.find((document) => document.kind === kind && document.id === id);
+  if (!doc) return { error: "document_not_found", kind, path: id };
+
+  const text = await fs.readFile(doc.path, "utf8");
+  const lines = text.split(/\r?\n/);
+  const startLine = clampRangeStart(options.startLine, lines.length);
+  const lineCount = clampLimit(options.lineCount, DEFAULT_DOCUMENT_LINES, MAX_DOCUMENT_LINES);
+  const maxChars = clampLimit(options.maxChars, DEFAULT_DOCUMENT_CHARS, MAX_DOCUMENT_CHARS);
+  const selected = lines.slice(startLine - 1, Math.min(lines.length, startLine - 1 + lineCount)).join("\n");
+  const truncated = truncateText(selected, maxChars);
+
+  return {
+    kind: doc.kind,
+    path: doc.id,
+    title: doc.title,
+    startLine,
+    endLine: Math.min(lines.length, startLine - 1 + lineCount),
+    lineCount: lines.length,
+    size: doc.size,
+    text: truncated.text,
+    truncated: truncated.truncated || startLine - 1 + lineCount < lines.length
+  };
+}
+
+export function getSdkDocumentInfo(index: SdkIndex, kind: "docs" | "fbexport", id: string) {
+  const doc = index.documents.find((document) => document.kind === kind && document.id === id);
+  if (!doc) return { error: "document_not_found", kind, path: id };
+  return {
+    kind: doc.kind,
+    path: doc.id,
+    title: doc.title,
+    size: doc.size,
+    lineCount: doc.lineCount,
+    detailAvailable: true,
+    readTool: "read_sdk_document"
+  };
 }
 
 function collectDeclaration(lines: string[], start: number): string {
@@ -252,4 +343,49 @@ function parseJsonOrText(text?: string): unknown {
   } catch {
     return text.trim();
   }
+}
+
+function summarizeSdkSymbol(
+  index: SdkIndex,
+  symbol: SdkSymbol,
+  options: { includeDetail: boolean; maxChars: number }
+) {
+  const base = {
+    name: symbol.name,
+    kind: symbol.kind,
+    source: symbol.source,
+    path: relativeSdkPath(index, symbol.path),
+    line: symbol.line
+  };
+  if (!options.includeDetail) {
+    return { ...base, detailAvailable: true };
+  }
+
+  const detail = truncateText(symbol.detail, options.maxChars);
+  return {
+    ...base,
+    signatures: symbol.signatures.map((signature) => truncateText(signature, options.maxChars).text),
+    detail: detail.text,
+    truncated: detail.truncated,
+    detailAvailable: detail.truncated
+  };
+}
+
+function truncateText(value: string, maxChars: number): { text: string; truncated: boolean } {
+  if (value.length <= maxChars) return { text: value, truncated: false };
+  return { text: `${value.slice(0, Math.max(0, maxChars - 25)).trimEnd()}\n... [truncated]`, truncated: true };
+}
+
+function clampLimit(value: number | undefined, defaultValue: number, maxValue: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return defaultValue;
+  return Math.max(1, Math.min(maxValue, Math.floor(value)));
+}
+
+function clampRangeStart(value: number | undefined, lineCount: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 1;
+  return Math.max(1, Math.min(Math.max(1, lineCount), Math.floor(value)));
+}
+
+function relativeSdkPath(index: SdkIndex, filePath: string): string {
+  return index.status.sdkPath ? relativePosix(index.status.sdkPath, filePath) : filePath;
 }

@@ -56,10 +56,11 @@ Example configuration for clients that launch stdio MCP servers:
 ## MCP Tools
 
 - `search_book`: searches `/content/chapters/*.md` from the installed `link1345/bf-portal-book` data and returns GitHub blob links.
-- `get_book_chapter`: returns one chapter by slug with headings and source URL.
-- `search_sdk`: searches SDK docs, type declarations, modlib exports, and FbExportData.
-- `get_sdk_symbol`: returns parsed SDK type/modlib symbol details.
-- `list_sdk_symbols`: lists parsed SDK symbols with filters.
+- `get_book_chapter`: returns one chapter by slug with headings and source URL. Chapter text is omitted by default; pass `includeText`, `startLine`, `lineCount`, or `maxChars` for bounded text.
+- `search_sdk`: searches SDK docs, type declarations, modlib exports, and FbExportData. Long snippets are truncated and can be expanded with detail/read tools.
+- `get_sdk_symbol`: returns parsed SDK type/modlib symbol details. Use `includeDetail` and `maxChars` to control detail size.
+- `list_sdk_symbols`: lists lightweight SDK symbol summaries with filters.
+- `read_sdk_document`: reads a bounded line range from SDK docs or FbExportData.
 - `get_sdk_status`: reports SDK path, detected folders, missing items, and version.
 
 ## SDK Layout

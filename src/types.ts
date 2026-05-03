@@ -32,6 +32,8 @@ export interface SearchResult {
   line?: number;
   snippet: string;
   url?: string;
+  truncated?: boolean;
+  detailAvailable?: boolean;
 }
 
 export interface SdkStatus {
@@ -58,8 +60,8 @@ export interface SdkDocument {
   id: string;
   title: string;
   path: string;
-  text: string;
-  lines: string[];
+  size: number;
+  lineCount: number;
 }
 
 export interface SdkIndex {

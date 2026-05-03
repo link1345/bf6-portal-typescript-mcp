@@ -43,5 +43,5 @@ export function searchLines(options: {
 }
 
 export function jsonText(value: unknown): string {
-  return JSON.stringify(value, null, 2);
+  return JSON.stringify(value);
 }
