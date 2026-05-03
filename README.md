@@ -1,5 +1,12 @@
 # BF6 Portal TypeScript MCP
 
+
+[![NPM Version](https://img.shields.io/npm/v/bf6-portal-typescript-mcp)](https://www.npmjs.com/package/bf6-portal-typescript-mcp)
+[![NPM License](https://img.shields.io/npm/l/bf6-portal-typescript-mcp)](https://github.com/link1345/bf6-portal-typescript-mcp/blob/main/LICENSE)
+![NPM Downloads](https://img.shields.io/npm/dw/bf6-portal-typescript-mcp)
+![GitHub last commit](https://img.shields.io/github/last-commit/link1345/bf6-portal-typescript-mcp)
+[![Discord](https://img.shields.io/discord/1329272750099136552)](https://discord.gg/Zy65k8AxH2)
+
 Reference and search MCP server for the BF6 Portal TypeScript SDK and the unofficial BF Portal book.
 
 ## Usage
