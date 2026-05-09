@@ -11,7 +11,7 @@ Reference and search MCP server for the BF6 Portal TypeScript SDK and the unoffi
 
 ## Questions / Support
 
-If you have questions or feedback, feel free to contact me on the Battlefield Portal Discord server 😄
+If you have questions or feedback, feel free to contact me on the PlumRice Discord server 😄
 (ご質問やご意見がありましたら、PlumRiceのDiscordサーバーでお気軽にご連絡ください)
 
 Please use the appropriate thread/channel for discussions related to this project.
